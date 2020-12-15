@@ -666,7 +666,6 @@ build "ffmpeg"
 download "https://ffmpeg.org/releases/ffmpeg-4.3.1.tar.bz2"
 # shellcheck disable=SC2086
 ./configure "${CONFIGURE_OPTIONS[@]}" \
-	--disable-debug \
 	--disable-doc \
 	--disable-static \
 	--enable-gpl \
@@ -679,9 +678,43 @@ download "https://ffmpeg.org/releases/ffmpeg-4.3.1.tar.bz2"
 	--extra-libs="${EXTRALIBS}" \
 	--pkgconfigdir="$WORKSPACE/lib/pkgconfig" \
 	--pkg-config-flags="--static" \
-	--prefix="${WORKSPACE}"
+	--prefix="${WORKSPACE}" \
+	--disable-stripping \
+	--enable-debug
 
 execute make -j $MJOBS
+
+if is_mac; then
+	execute dsymutil libavcodec/libavcodec.dylib -o libavcodec.dSYM
+	execute dsymutil libavdevice/libavdevice.dylib -o libavdevice.dSYM
+	execute dsymutil libavfilter/libavfilter.dylib -o libavfilter.dSYM
+	execute dsymutil libavformat/libavformat.dylib -o libavformat.dSYM
+	# we're not building this one
+	# execute dsymutil libavresample/libavresample.dylib -o libavresample.dSYM
+	execute dsymutil libavutil/libavutil.dylib -o libavutil.dSYM
+	execute dsymutil libpostproc/libpostproc.dylib -o libpostproc.dSYM
+	execute dsymutil libswresample/libswresample.dylib -o libswresample.dSYM
+	execute dsymutil libswscale/libswscale.dylib -o libswscale.dSYM
+fi
+
+if [[ -n "$SENTRY_AUTH_TOKEN" ]]; then
+	# TODO: install sentry-cli when running on CI
+	sentry-cli --auth-token $SENTRY_AUTH_TOKEN upload-dif --org descript-inc --project descript-electron .
+fi
+
+# strip symbols from binaries (i.e., make them smaller)
+execute strip -x libavcodec/libavcodec.dylib
+execute strip -x libavdevice/libavdevice.dylib
+execute strip -x libavfilter/libavfilter.dylib
+execute strip -x libavformat/libavformat.dylib
+execute strip -x libavutil/libavutil.dylib
+execute strip -x libpostproc/libpostproc.dylib
+execute strip -x libswresample/libswresample.dylib
+execute strip -x libswscale/libswscale.dylib
+execute strip -x ffmpeg
+execute strip -x ffprobe
+execute strip -x ffplay
+
 execute make install
 
 INSTALL_FOLDER="/usr/bin"
