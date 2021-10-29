@@ -1,3 +1,5 @@
+./build-ffmpeg -c && SKIPINSTALL=yes ./build-ffmpeg -b > ./build-ffmpeg.log
+
 ❌ don't need
 ✅ already in ffmpeg-build-script build
 🕒 need to add to ffmpeg-build-script
@@ -30,7 +32,7 @@ Target (evermeet.cx static build)
 🕒✅ --enable-libspeex - speex audio file format
 ✅ --enable-libtheora
 🕒✅ --enable-libtwolame - mpeg2
-✅ --enable-libvidstab
+❌ --enable-libvidstab - video stabilization
 ❌ --enable-libvmaf - perceptual video quality metric
 ❌ --enable-libvo-amrwbenc - VisualOn AMR-WB encoder library
 ✅ --enable-libvorbis

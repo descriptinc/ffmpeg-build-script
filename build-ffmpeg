@@ -4,7 +4,7 @@
 # LICENSE: https://github.com/markus-perl/ffmpeg-build-script/blob/master/LICENSE
 
 PROGNAME=$(basename "$0")
-VERSION=1.21.rc5
+VERSION=1.21.rc6
 CWD=$(pwd)
 PACKAGES="$CWD/packages"
 WORKSPACE="$CWD/workspace"
@@ -20,6 +20,14 @@ is_mac () {
 	fi
 
 	return 1
+}
+
+function get_mac_architecture {
+	if is_mac; then
+    	echo $(uname -m)
+    else
+    	echo "not_mac_os"    
+    fi
 }
 
 # read by gcc and cmake
@@ -304,7 +312,7 @@ if build "meson"; then
 fi
 
 if build "cmake"; then
-	download "https://cmake.org/files/v3.18/cmake-3.18.4.tar.gz"
+	download "https://cmake.org/files/v3.21/cmake-3.21.4.tar.gz"
 	execute ./configure --prefix="${WORKSPACE}" --system-zlib
 	execute make -j $MJOBS
 	execute make install
@@ -351,29 +359,33 @@ if build "x265"; then
 fi
 CONFIGURE_OPTIONS+=("--enable-libx265")
 
-if build "libvpx"; then
-	download "https://github.com/webmproject/libvpx/archive/v1.9.0.tar.gz" "libvpx-1.9.0.tar.gz"
+# cvanwink: temporarily disable to avoid "libvpx enabled but no supported decoders found"
+# ED-2726
+if [ "$(get_mac_architecture)" == "x86_64" ]; then
+	if build "libvpx"; then
+		download "https://github.com/webmproject/libvpx/archive/v1.11.0.tar.gz" "libvpx-1.11.0.tar.gz"
 
-	EXTRA_FLAG=""
+		EXTRA_FLAG=""
 
-	if is_mac; then
-		echo "Applying Darwin patch"
-		sed "s/,--version-script//g" build/make/Makefile > build/make/Makefile.patched
-		sed "s/-Wl,--no-undefined -Wl,-soname/-Wl,-undefined,error -Wl,-install_name/g" build/make/Makefile.patched > build/make/Makefile
-		EXTRA_FLAG="--target=x86_64-darwin15-gcc"
+		if is_mac; then
+			echo "Applying Darwin patch"
+			sed "s/,--version-script//g" build/make/Makefile > build/make/Makefile.patched
+			sed "s/-Wl,--no-undefined -Wl,-soname/-Wl,-undefined,error -Wl,-install_name/g" build/make/Makefile.patched > build/make/Makefile
+			EXTRA_FLAG="--target=x86_64-darwin15-gcc"
+		fi
+
+
+		execute ./configure --prefix="${WORKSPACE}" --disable-unit-tests --enable-shared --disable-static --as=yasm "${EXTRA_FLAG}"
+		execute make -j $MJOBS
+
+		set_mac_install_name "libvpx.11.dylib"
+
+		execute make install
+
+		build_done "libvpx"
 	fi
-
-
-	execute ./configure --prefix="${WORKSPACE}" --disable-unit-tests --enable-shared --disable-static --as=yasm "${EXTRA_FLAG}"
-	execute make -j $MJOBS
-
-	set_mac_install_name "libvpx.6.dylib"
-
-	execute make install
-
-	build_done "libvpx"
+	CONFIGURE_OPTIONS+=("--enable-libvpx")
 fi
-CONFIGURE_OPTIONS+=("--enable-libvpx")
 
 if build "xvidcore"; then
 	download "https://downloads.xvid.com/downloads/xvidcore-1.3.7.tar.gz"
@@ -394,17 +406,21 @@ if build "xvidcore"; then
 fi
 CONFIGURE_OPTIONS+=("--enable-libxvid")
 
-if build "vid_stab"; then
-	download "https://github.com/georgmartius/vid.stab/archive/v1.1.0.tar.gz" "vid.stab-1.1.0.tar.gz"
-	execute cmake -DBUILD_SHARED_LIBS=on -DCMAKE_INSTALL_PREFIX:PATH="${WORKSPACE}" -DUSE_OMP=OFF -DENABLE_SHARED=on .
-	execute make
-	execute make install
+# cvanwink: no newer releases, but head revision has fix for arm64
+# ED-2727
+if [ "$(get_mac_architecture)" == "x86_64" ]; then
+	if build "vid_stab"; then
+		download "https://github.com/georgmartius/vid.stab/archive/v1.1.0.tar.gz" "vid.stab-1.1.0.tar.gz"
+		execute cmake -DBUILD_SHARED_LIBS=on -DCMAKE_INSTALL_PREFIX:PATH="${WORKSPACE}" -DUSE_OMP=OFF -DENABLE_SHARED=on .
+		execute make
+		execute make install
 
-	set_mac_install_name "${WORKSPACE}/lib/libvidstab.1.1.dylib" "libvidstab.1.1.dylib"
+		set_mac_install_name "${WORKSPACE}/lib/libvidstab.1.1.dylib" "libvidstab.1.1.dylib"
 
-	build_done "vid_stab"
+		build_done "vid_stab"
+	fi
+	CONFIGURE_OPTIONS+=("--enable-libvidstab")
 fi
-CONFIGURE_OPTIONS+=("--enable-libvidstab")
 
 if build "twolame"; then
 	download "https://downloads.sourceforge.net/twolame/twolame-0.4.0.tar.gz"
@@ -418,13 +434,13 @@ CONFIGURE_OPTIONS+=("--enable-libtwolame")
 
 
 if build "av1"; then
-	download "https://aomedia.googlesource.com/aom/+archive/430d58446e1f71ec2283af0d6c1879bc7a3553dd.tar.gz" "av1.tar.gz" "av1"
+	download "https://aomedia.googlesource.com/aom/+archive/287164de79516c25c8c84fd544f67752c170082a.tar.gz" "av1.tar.gz" "av1"
 	make_dir "$PACKAGES"/aom_build
 	cd "$PACKAGES"/aom_build || exit
 	execute cmake -DBUILD_SHARED_LIBS=1 -DENABLE_TESTS=0 -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib "$PACKAGES"/av1
 	execute make -j $MJOBS
 
-	set_mac_install_name "libaom.2.0.0.dylib" "libaom.2.dylib"
+	set_mac_install_name "libaom.3.2.0.dylib" "libaom.3.dylib"
 
 	execute make install
 
@@ -432,20 +448,27 @@ if build "av1"; then
 fi
 CONFIGURE_OPTIONS+=("--enable-libaom")
 
-if build "dav1d"; then
-	download "https://code.videolan.org/videolan/dav1d/-/archive/0.7.1/dav1d-0.7.1.tar.gz"
-	make_dir "$PACKAGES"/dav1d_build
-	cd "$PACKAGES"/dav1d_build || exit
-	execute meson --prefix="${WORKSPACE}" ../dav1d-0.7.1
-	execute ninja
-	execute ninja install
+# cvanwink: arm64 asm doesn't assemble
+# ED-2724
+if [ "$(get_mac_architecture)" == "x86_64" ]; then
+	if build "dav1d"; then
+		download "https://code.videolan.org/videolan/dav1d/-/archive/0.9.2/dav1d-0.9.2.tar.gz"
+		make_dir "$PACKAGES"/dav1d_build
+		cd "$PACKAGES"/dav1d_build || exit
+		execute meson --prefix="${WORKSPACE}" --buildtype=release --wrap-mode=nofallback ../dav1d-0.9.2
+		execute ninja
+		execute ninja install
 
-	build_done "dav1d"
+		build_done "dav1d"
+	fi
+	CONFIGURE_OPTIONS+=("--enable-libdav1d")
 fi
-CONFIGURE_OPTIONS+=("--enable-libdav1d")
 
+# cvanwink: requires ```brew install automake``` for autoreconf
+# 			requires ```brew install libtool``` for autoreconf
+#
 if build "zimg"; then
-	download "https://github.com/sekrit-twc/zimg/archive/release-3.0.1.tar.gz"
+	download "https://github.com/sekrit-twc/zimg/archive/release-3.0.3.tar.gz"
 	execute autoreconf -i
 	execute ./configure --prefix="${WORKSPACE}" --enable-shared --disable-static
 	execute make -j $MJOBS
@@ -492,7 +515,7 @@ fi
 CONFIGURE_OPTIONS+=("--enable-libopus")
 
 if build "libogg"; then
-	download "https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.3.tar.gz"
+	download "https://ftp.osuosl.org/pub/xiph/releases/ogg/libogg-1.3.5.tar.gz"
 	execute ./configure --prefix="${WORKSPACE}" --enable-shared --disable-static
 	execute make -j $MJOBS
 	execute make install
@@ -500,8 +523,10 @@ if build "libogg"; then
 fi
 
 if build "libvorbis"; then
-	download "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.6.tar.gz"
-	OGG_CFLAGS="-I${WORKSPACE}/include/ogg" OGG_LIBS="-L${WORKSPACE}/lib -logg" execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest
+	download "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.gz"
+	#cvanwink: the environment variables are covered with the configure arguments and otherwise cause issues
+	#OGG_CFLAGS="-I${WORKSPACE}/include/ogg" OGG_LIBS="-L${WORKSPACE}/lib -logg" execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest
+	execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest
 	execute make -j $MJOBS
 	execute make install
 
@@ -514,7 +539,9 @@ if build "libtheora"; then
 	sed "s/-fforce-addr//g" configure > configure.patched
 	chmod +x configure.patched
 	mv configure.patched configure
-	OGG_CFLAGS="-I${WORKSPACE}/include/ogg" OGG_LIBS="-L${WORKSPACE}/lib -logg" execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --with-vorbis-libraries="${WORKSPACE}"/lib --with-vorbis-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest --disable-vorbistest --disable-examples --disable-asm --disable-spec
+	#cvanwink: the environment variables are covered with the configure arguments and otherwise cause issues
+	#OGG_CFLAGS="-I${WORKSPACE}/include/ogg" OGG_LIBS="-L${WORKSPACE}/lib -logg" execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --with-vorbis-libraries="${WORKSPACE}"/lib --with-vorbis-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest --disable-vorbistest --disable-examples --disable-asm --disable-spec
+	execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --with-vorbis-libraries="${WORKSPACE}"/lib --with-vorbis-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest --disable-vorbistest --disable-examples --disable-asm --disable-spec
 	execute make -j $MJOBS
 	execute make install
 
@@ -533,17 +560,21 @@ if build "shine"; then
 fi
 CONFIGURE_OPTIONS+=("--enable-libshine")
 
-if build "soxr"; then
-	download "http://ftp.debian.org/debian/pool/main/libs/libsoxr/libsoxr_0.1.3.orig.tar.xz" "soxr-0.1.3.tar.xz"
-	make_dir build
-	cd build || exit
-	execute cmake .. -DWITH_OPENMP:BOOL=OFF -Wno-dev -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS:BOOL=ON
-	execute make -j $MJOBS
-	execute make install
+# cvanwink: SIMD doesn't compile
+# ED-2725
+if [ "$(get_mac_architecture)" == "x86_64" ]; then
+	if build "soxr"; then
+		download "http://ftp.debian.org/debian/pool/main/libs/libsoxr/libsoxr_0.1.3.orig.tar.xz" "soxr-0.1.3.tar.xz"
+		make_dir build
+		cd build || exit
+		execute cmake .. --log-level=VERBOSE -DWITH_OPENMP:BOOL=OFF -Wno-dev -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS:BOOL=ON
+		execute make -j $MJOBS
+		execute make install
 
-	build_done "soxr"
+		build_done "soxr"
+	fi
+	CONFIGURE_OPTIONS+=("--enable-libsoxr")
 fi
-CONFIGURE_OPTIONS+=("--enable-libsoxr")
 
 if build "speex"; then
 	download "http://downloads.us.xiph.org/releases/speex/speex-1.2.0.tar.gz"
@@ -560,7 +591,7 @@ CONFIGURE_OPTIONS+=("--enable-libspeex")
 ##
 
 if build "libwebp"; then
-	download "https://github.com/webmproject/libwebp/archive/v1.1.0.tar.gz" "libwebp-1.1.0.tar.gz"
+	download "https://github.com/webmproject/libwebp/archive/v1.2.1.tar.gz" "libwebp-1.2.1.tar.gz"
 	make_dir build
 	cd build || exit
 	execute cmake -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_BINDIR=bin -DCMAKE_INSTALL_INCLUDEDIR=include -DENABLE_SHARED=ON -DENABLE_STATIC=OFF ../
@@ -572,7 +603,7 @@ fi
 CONFIGURE_OPTIONS+=("--enable-libwebp")
 
 if build "openjpeg"; then
-	download "https://github.com/uclouvain/openjpeg/archive/v2.3.1.tar.gz" "openjpeg-v2.3.1.tar.gz"
+	download "https://github.com/uclouvain/openjpeg/archive/v2.4.0.tar.gz" "openjpeg-v2.4.0.tar.gz"
 	make_dir build
 	cd build || exit
 	execute cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DBUILD_SHARED_LIBS:bool=on
@@ -589,7 +620,7 @@ CONFIGURE_OPTIONS+=("--enable-libopenjpeg")
 ##
 
 if build "libsdl"; then
-	download "https://www.libsdl.org/release/SDL2-2.0.12.tar.gz"
+	download "https://www.libsdl.org/release/SDL2-2.0.16.tar.gz"
 	execute ./configure --prefix="${WORKSPACE}" --enable-shared --disable-static
 	execute make -j $MJOBS
 	execute make install
@@ -598,13 +629,13 @@ if build "libsdl"; then
 fi
 
 if build "snappy"; then
-	download "https://github.com/google/snappy/archive/1.1.8.tar.gz"
+	download "https://github.com/google/snappy/archive/1.1.9.tar.gz"
 	make_dir build
 	cd build || exit
-	execute cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DBUILD_SHARED_LIBS:bool=on
+	execute cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DBUILD_SHARED_LIBS:bool=on -DSNAPPY_BUILD_TESTS=OFF -DSNAPPY_BUILD_BENCHMARKS=OFF
 	execute make -j $MJOBS
 
-	set_mac_install_name "libsnappy.1.1.8.dylib" "libsnappy.1.dylib"
+	set_mac_install_name "libsnappy.1.1.9.dylib" "libsnappy.1.dylib"
 
 	execute make install
 
@@ -663,7 +694,7 @@ fi
 ##
 
 build "ffmpeg"
-download "https://ffmpeg.org/releases/ffmpeg-4.3.1.tar.bz2"
+download "https://ffmpeg.org/releases/ffmpeg-4.4.1.tar.bz2"
 # shellcheck disable=SC2086
 ./configure "${CONFIGURE_OPTIONS[@]}" \
 	--disable-debug \
@@ -731,7 +762,8 @@ cd $CWD
 if is_mac; then
 	node copy_mac_libs.js
 	cd "$WORKSPACE/mac"
-	execute zip --symlinks -r "ffmpeg-ffprobe-shared-darwin-x86_64.${VERSION}.zip" *
+		
+	execute zip --symlinks -r "ffmpeg-ffprobe-shared-darwin-$(get_mac_architecture).${VERSION}.zip" *
 fi
 
 exit 0

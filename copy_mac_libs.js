@@ -13,7 +13,7 @@ const baseLibDir = resolve(__dirname, 'workspace/lib');
 const destDir = resolve(__dirname, 'workspace/mac');
 
 try {
-  logAndExec(`rm -r ${destDir}`);
+  logAndExec(`rm -r -f ${destDir}`);
 } catch (err) {
   //
 }
