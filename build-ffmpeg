@@ -5,7 +5,7 @@
 
 PROGNAME=$(basename "$0")
 FFMPEG_VERSION=4.4
-SCRIPT_VERSION=1.33rc3
+SCRIPT_VERSION=1.40.rc.1
 CWD=$(pwd)
 PACKAGES="$CWD/packages"
 WORKSPACE="$CWD/workspace"
@@ -515,11 +515,11 @@ if ! $MACOS_M1; then
 fi
 
 if command_exists "cargo"; then
-  if build "rav1e" "0.5.0-beta"; then
+  if build "rav1e" "0.6.6"; then
     execute cargo install cargo-c
-    download "https://github.com/xiph/rav1e/archive/refs/tags/v0.5.0-beta.tar.gz"
+    download "https://github.com/xiph/rav1e/archive/refs/tags/v0.6.6.tar.gz"
     execute cargo cinstall --prefix="${WORKSPACE}" --library-type=staticlib --crt-static --release
-    build_done "rav1e" "0.5.0-beta"
+    build_done "rav1e" "0.6.6"
   fi
   CONFIGURE_OPTIONS+=("--enable-librav1e")
 fi
@@ -866,7 +866,7 @@ if build "libvorbis" "1.3.7"; then
   download "https://ftp.osuosl.org/pub/xiph/releases/vorbis/libvorbis-1.3.7.tar.gz"
   echo $PWD
   
-  patch configure.ac ${CWD%/descript}vorbis.config.patch
+  patch configure.ac ${CWD%/descript}/vorbis.config.patch
   ./autogen.sh
   if $SHARED_LIBRARIES; then
     execute ./configure --prefix="${WORKSPACE}" --with-ogg-libraries="${WORKSPACE}"/lib --with-ogg-includes="${WORKSPACE}"/include/ --disable-static --enable-shared --disable-oggtest
@@ -953,23 +953,20 @@ if build "libpng" "1.6.37"; then
   build_done "libpng" "1.6.37"
 fi
 
-## does not compile on monterey -> _PrintGifError
-if [[ "$OSTYPE" != "darwin"* ]]; then
-  if build "libwebp" "1.2.1"; then
-    # libwebp can fail to compile on Ubuntu if these flags were left set to CFLAGS
-    CPPFLAGS=
-    download "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.2.1.tar.gz" "libwebp-1.2.1.tar.gz"
-    execute ./configure --prefix="${WORKSPACE}" --disable-shared --enable-static --disable-dependency-tracking --disable-gl --with-zlib-include="${WORKSPACE}"/include/ --with-zlib-lib="${WORKSPACE}"/lib
-    make_dir build
-    cd build || exit
-    execute cmake -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_BINDIR=bin -DCMAKE_INSTALL_INCLUDEDIR=include -DENABLE_SHARED=OFF -DENABLE_STATIC=ON ../
-    execute make -j $MJOBS
-    execute make install
+if build "libwebp" "1.2.1"; then
+  # libwebp can fail to compile on Ubuntu if these flags were left set to CFLAGS
+  CPPFLAGS=
+  download "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.2.1.tar.gz" "libwebp-1.2.1.tar.gz"
+  execute ./configure --prefix="${WORKSPACE}" --disable-shared --enable-static --disable-dependency-tracking --disable-gl --with-zlib-include="${WORKSPACE}"/include/ --with-zlib-lib="${WORKSPACE}"/lib
+  make_dir build
+  cd build || exit
+  execute cmake -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_BINDIR=bin -DCMAKE_INSTALL_INCLUDEDIR=include -DENABLE_SHARED=OFF -DENABLE_STATIC=ON ../
+  execute make -j $MJOBS
+  execute make install
 
-    build_done "libwebp" "1.2.1"
-  fi
-  CONFIGURE_OPTIONS+=("--enable-libwebp")
+  build_done "libwebp" "1.2.1"
 fi
+CONFIGURE_OPTIONS+=("--enable-libwebp")
 ##
 ## other library
 ##
