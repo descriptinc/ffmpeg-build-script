@@ -5,7 +5,9 @@ on:
     paths-ignore:
       - '*.md'
   pull_request:
-    branches: [ charles/arm64 ]
+    branches: 
+      - charles/arm64
+      - sk/ffmpeg-4.4-arm64
 
 jobs:
   build-macos-shared:
