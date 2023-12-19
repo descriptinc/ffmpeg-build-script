@@ -1,0 +1,27 @@
+name: build shared-libs for Descript
+
+on:
+  push:
+    paths-ignore:
+      - '*.md'
+  pull_request:
+    branches: 
+      - charles/arm64
+      - sk/ffmpeg-4.4-arm64
+
+jobs:
+  build-macos-shared:
+    name: ffmpeg-ffprobe-shared-darwin
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8 #install the python needed
+      
+      - name: build-ffmpeg-descript.py
+        run: |
+          python ./descript/build-ffmpeg-descript.py
