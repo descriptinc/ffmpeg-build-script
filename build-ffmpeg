@@ -870,7 +870,7 @@ fi
 CONFIGURE_OPTIONS+=("--enable-libmp3lame")
 
 if build "opus" "1.4"; then
-  download "https://archive.mozilla.org/pub/opus/opus-$CURRENT_PACKAGE_VERSION.tar.gz"
+  download "https://downloads.xiph.org/releases/opus/opus-$CURRENT_PACKAGE_VERSION.tar.gz"
   if $SHARED_LIBRARIES; then
     execute ./configure --prefix="${WORKSPACE}" --enable-shared --disable-static
   else
