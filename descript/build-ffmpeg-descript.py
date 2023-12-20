@@ -30,7 +30,7 @@ packages_dir = os.path.join(base_dir, 'packages')
 workspace_dir = os.path.join(base_dir, 'workspace')
 workspace_bin_dir = os.path.join(workspace_dir, 'bin')
 workspace_lib_dir = os.path.join(workspace_dir, 'lib')
-deployment_target = '11.0' if platform.machine() == 'arm64' else '10.11' 
+deployment_target = '11.0' if platform.machine() == 'arm64' else '10.13' 
 
 #
 #   Keep track of which libraries are copied, skipped, or missing
