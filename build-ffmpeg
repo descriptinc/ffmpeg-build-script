@@ -4,7 +4,7 @@
 # LICENSE: https://github.com/markus-perl/ffmpeg-build-script/blob/master/LICENSE
 
 PROGNAME=$(basename "$0")
-FFMPEG_VERSION=6.0
+FFMPEG_VERSION=6.1
 SCRIPT_VERSION=1.48.rc.1
 CWD=$(pwd)
 PACKAGES="$CWD/packages"
@@ -475,7 +475,7 @@ else
   fi
 fi
 
-if build "cmake" "3.27.7"; then
+if build "cmake" "3.22.0"; then
   download "https://github.com/Kitware/CMake/releases/download/v$CURRENT_PACKAGE_VERSION/cmake-$CURRENT_PACKAGE_VERSION.tar.gz"
   execute ./configure --prefix="${WORKSPACE}" --parallel="${MJOBS}" -- -DCMAKE_USE_OPENSSL=OFF
   execute make -j $MJOBS
@@ -718,9 +718,9 @@ if build "av1" "7b5f665"; then
   cd "$PACKAGES"/aom_build || exit
   if $MACOS_M1; then
     if $SHARED_LIBRARIES; then
-      execute cmake -DENABLE_TESTS=0 -DEBUILD_SHARED_LIBS=1 -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCONFIG_RUNTIME_CPU_DETECT=0 "$PACKAGES"/av1
+      execute cmake --trace-expand -DENABLE_TESTS=0 -DBUILD_SHARED_LIBS=1 -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCONFIG_RUNTIME_CPU_DETECT=0 "$PACKAGES"/av1
     else
-      execute cmake -DENABLE_TESTS=0 -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCONFIG_RUNTIME_CPU_DETECT=0 "$PACKAGES"/av1
+      execute cmake --trace -DENABLE_TESTS=0 -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DCMAKE_INSTALL_LIBDIR=lib -DCONFIG_RUNTIME_CPU_DETECT=0 "$PACKAGES"/av1
     fi
   else
     if $SHARED_LIBRARIES; then
