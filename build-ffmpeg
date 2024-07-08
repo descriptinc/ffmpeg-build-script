@@ -1257,7 +1257,6 @@ if $SHARED_LIBRARIES; then
   --extra-ldflags="${LDFLAGS}" \
   --extra-libs="${EXTRALIBS}" \
   --pkgconfigdir="$WORKSPACE/lib/pkgconfig" \
-  --pkg-config-flags="--static" \
   --prefix="${WORKSPACE}" \
   --extra-version="${EXTRA_VERSION}"
 else
