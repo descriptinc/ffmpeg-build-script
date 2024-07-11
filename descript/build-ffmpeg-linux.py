@@ -415,9 +415,9 @@ def main():
 
     # bundle up the build artifacts
     os.chdir(temp_dir)
-    shared_zip_name = base_artifact_name + '.zip'
+    shared_zip_name = base_artifact_name + '.tar.gz'
     dest_file = os.path.join(output_dir, shared_zip_name)
-    args = ['/usr/bin/zip', '--symlinks', '-r', os.path.join('..', shared_zip_name), '.']
+    args = ['/usr/bin/tar', 'cvzf', os.path.join('..', shared_zip_name), '.']
     log(' '.join(args))
     subprocess.check_output(args)
 

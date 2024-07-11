@@ -1215,13 +1215,17 @@ if $SHARED_LIBRARIES; then
   CONFIGURE_OPTIONS+=("--enable-libsnappy")
 
 
-  if build "xz" "5.2.5"; then
-    download "https://tukaani.org/xz/xz-5.2.5.tar.gz"
+  if build "xz" "5.4.5"; then
+    download "https://tukaani.org/xz/xz-5.4.5.tar.gz"
+  if $SHARED_LIBRARIES; then
     execute ./configure --prefix="${WORKSPACE}" --enable-shared --disable-static
+  else
+    execute ./configure --prefix="${WORKSPACE}" --disable-shared --enable-static
+  fi
     execute make -j $MJOBS
     execute make install
 
-    build_done "xz" "5.2.5"
+    build_done "xz" "5.4.5"
   fi
 
 fi
