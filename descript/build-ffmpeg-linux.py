@@ -254,7 +254,7 @@ def copyLibraryAndDependencies(src_file, dest_folder, log_file, parent_path = ''
                 if src_dependency_file != dest_dependency_path:
                     # Copy each version variant file (often symlinks)
                     for variant_src_file in getVersionVariantsForFile(src_dependency_file):
-                        copyLibraryAndSymbolPackage(variant_src_file, dest_folder, False)
+                        copyLibraryAndSymbolPackage(variant_src_file, dest_folder, True)
                         variant_dest_file = os.path.join(dest_folder, os.path.basename(variant_src_file))
                         copied_libs.add(variant_src_file)
                         copied_libs.add(variant_dest_file)
