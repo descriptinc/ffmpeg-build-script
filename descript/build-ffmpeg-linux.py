@@ -136,7 +136,7 @@ def copyOrGenerateSymbolFiles(source, dest, log_file):
     skips symlinks to avoid duplication
     Copies entire `dbg` packages for `so` files already within `.dbg` packages
     """
-    for fileref in pathlib.Path(source + '/').glob('**/*.dylib'):
+    for fileref in pathlib.Path(source + '/').glob('**/*.so'):
       copyOrGenerateSymbolFile(str(fileref), dest, log_file)
     for fileref in pathlib.Path(source + '/').glob('**/*.so*'):
       copyOrGenerateSymbolFile(str(fileref), dest, log_file)
@@ -174,7 +174,7 @@ def copyLibraryAndSymbolPackage(src_file, dest_folder, overwrite):
 #
 def getFileBaseNameWithoutVersion(file_path) -> str:
     """
-    :return: `'libpostproc'` for something like `'/foo/bar/libpostproc.55.9.100.dylib'`
+    :return: `'libpostproc'` for something like `'/foo/bar/libpostproc.so.55.9.100'`
     """
     base_name = os.path.basename(file_path)
     base_name = base_name.split('.')[0] # keep everything before first '.'
@@ -189,9 +189,9 @@ def getFileBaseNameWithoutVersion(file_path) -> str:
 def getVersionVariantsForFile(file_path):
     """
     Returns the following three files for any one of the file paths provided:
-    `'.../ffmpeg-build-script/workspace/lib/libavcodec.58.134.100.dylib'`
-    `'.../ffmpeg-build-script/workspace/lib/libavcodec.58.dylib'`
-    `'.../ffmpeg-build-script/workspace/lib/libavcodec.dylib'`
+    `'.../ffmpeg-build-script/workspace/lib/libavcodec.so.58.134.100'`
+    `'.../ffmpeg-build-script/workspace/lib/libavcodec.so.58'`
+    `'.../ffmpeg-build-script/workspace/lib/libavcodec.so'`
 
     """
     result = set()
@@ -204,7 +204,7 @@ def getVersionVariantsForFile(file_path):
         os.path.dirname(file_path),
         dependency_name_without_version)
 
-    for variant in glob.glob(unversioned_dependency_base_name + r'.*dylib'):
+    for variant in glob.glob(unversioned_dependency_base_name + r'*.so*'):
         result.add(variant)
         
     return list(result)
