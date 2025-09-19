@@ -719,6 +719,7 @@ if build "zimg" "3.0.5"; then
   cd zimg-release-$CURRENT_PACKAGE_VERSION || exit
   execute "${WORKSPACE}/bin/libtoolize" -i -f -q
   execute ./autogen.sh --prefix="${WORKSPACE}"
+  export CPPFLAGS="${CFLAGS}"
   execute ./configure --prefix="${WORKSPACE}" --enable-static --disable-shared
   execute make -j $MJOBS
   execute make install
@@ -915,7 +916,7 @@ CONFIGURE_OPTIONS+=("--enable-libjxl")
 
 if build "libwebp" "1.4.0"; then
   # libwebp can fail to compile on Ubuntu if these flags were left set to CFLAGS
-  CPPFLAGS=
+  CPPFLAGS=-fPIC
   download "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$CURRENT_PACKAGE_VERSION.tar.gz" "libwebp-$CURRENT_PACKAGE_VERSION.tar.gz"
   make_dir build
   cd build || exit
