@@ -553,7 +553,7 @@ if build "svtav1" "2.3.0"; then
   # Last known working commit which passed CI Tests from HEAD branch
   download "https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$CURRENT_PACKAGE_VERSION/SVT-AV1-v$CURRENT_PACKAGE_VERSION.tar.gz" "svtav1-$CURRENT_PACKAGE_VERSION.tar.gz"
   cd "${PACKAGES}"/svtav1-$CURRENT_PACKAGE_VERSION//Build/linux || exit
-  execute cmake -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DENABLE_SHARED=off -DBUILD_SHARED_LIBS=OFF ../.. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+  execute cmake -DCMAKE_INSTALL_PREFIX="${WORKSPACE}" -DSVT_AV1_LTO=OFF -DENABLE_SHARED=off -DBUILD_SHARED_LIBS=OFF ../.. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
   execute make -j $MJOBS
   execute make install
   execute cp SvtAv1Enc.pc "${WORKSPACE}/lib/pkgconfig/"
